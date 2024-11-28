@@ -4,6 +4,7 @@ import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -22,8 +23,8 @@ public class Bot extends TelegramLongPollingBot {
                     SendMessage msg = new SendMessage();
                     msg.setText("Выбор режима");
                     msg.setChatId(update.getMessage().getChatId());
+                    msg.setReplyMarkup(get_InlineKeyboardButton());
                     execute(msg);
-                    execute(sendInlineKeyBoardMessage(update.getMessage().getChatId()));
                 } catch (TelegramApiException e) {
                     e.printStackTrace();
                 }
@@ -41,17 +42,6 @@ public class Bot extends TelegramLongPollingBot {
     @Override
     public String getBotToken() {
         return System.getenv("token");
-    }
-
-    public static SendMessage sendInlineKeyBoardMessage(long chatId) {
-        SendMessage message = new SendMessage();
-        message.setText("Новая информация, hrththrок");
-        message.setChatId(chatId);
-
-        InlineKeyboardMarkup inlineKeyboardMarkup = get_InlineKeyboardButton();
-        message.setReplyMarkup(inlineKeyboardMarkup);
-
-        return message;
     }
 
     public static InlineKeyboardMarkup get_InlineKeyboardButton()
@@ -99,15 +89,8 @@ public class Bot extends TelegramLongPollingBot {
                 }
                 break;
             case "Стандартный" :
-                deleteLastMessage(chatId, messageId);
-                Field field = new Field();
-                message.setText("Количество оставшихся мин: ");
-                message.setChatId(chatId);
-                try {
-                    execute(message);
-                } catch (TelegramApiException e) {
-                    e.printStackTrace();
-                }
+                //по идее нам реализацию каждой из функций для обработки режимов нужно сделать в отдельном файле/классе с логикой бота
+                startStandart(chatId, messageId);
                 break;
             case "реальное_время" :
                 message.setText("Сработал реальное_время");
@@ -118,6 +101,7 @@ public class Bot extends TelegramLongPollingBot {
                     e.printStackTrace();
                 }
                 break;
+
         }
     }
 
@@ -130,8 +114,24 @@ public class Bot extends TelegramLongPollingBot {
                 execute(deleteMessage);
             } catch (TelegramApiException e) {
                 e.printStackTrace();
-                throw new RuntimeException(e);
             }
+        }
+    }
+
+    private void startStandart(String chatId, int messageId){
+        SendMessage message = new SendMessage();
+        deleteLastMessage(chatId, messageId);
+        message.setText("Количество оставшихся мин: ");
+        message.setChatId(chatId);
+
+        Field field = new Field();
+        InlineKeyboardMarkup inlineKeyboardMarkup = field.getInlineKeyboardButton();
+        message.setReplyMarkup(inlineKeyboardMarkup);
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
         }
     }
 }

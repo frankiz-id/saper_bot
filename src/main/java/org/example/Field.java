@@ -2,11 +2,11 @@ package org.example;
 
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
-
-import java.lang.reflect.Array;
 import java.util.*;
-
+import java.lang.reflect.Array;
 import org.example.Button;
+import javax.validation.constraints.Null;
+
 
 public class Field {
     private Button[][] buttons = new Button[12][8];
@@ -67,7 +67,6 @@ public class Field {
 
         int y_coord = Integer.parseInt(buttonName.substring(0, 2));
         int x_coord = Integer.parseInt(buttonName.substring(2));
-
 
         if (!getStartedGame()){
             setStartedGame(true);
@@ -141,34 +140,38 @@ public class Field {
         }
     }
 
-
-    private InlineKeyboardMarkup get_InlineKeyboardButton()
-    {
-        int number_row = 0;
-        int number_column = 0;
-        //for
-
+    public InlineKeyboardMarkup getInlineKeyboardButton(){
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        InlineKeyboardButton inlineKeyboardButton1 = new InlineKeyboardButton();
-        InlineKeyboardButton inlineKeyboardButton2 = new InlineKeyboardButton();
-        InlineKeyboardButton inlineKeyboardButton3 = new InlineKeyboardButton();
-        inlineKeyboardButton1.setText("Обучение");
-        inlineKeyboardButton1.setCallbackData("Обучение");
-        inlineKeyboardButton2.setText("Стандартный");
-        inlineKeyboardButton2.setCallbackData("Стандартный");
-        inlineKeyboardButton3.setText("Реальное время");
-        inlineKeyboardButton3.setCallbackData("реальное_время");
-        List<InlineKeyboardButton> keyboardButtonsRow1 = new ArrayList<>();
-        List<InlineKeyboardButton> keyboardButtonsRow2 = new ArrayList<>();
-        List<InlineKeyboardButton> keyboardButtonsRow3 = new ArrayList<>();
-        keyboardButtonsRow1.add(inlineKeyboardButton1);
-        keyboardButtonsRow2.add(inlineKeyboardButton2);
-        keyboardButtonsRow3.add(inlineKeyboardButton3);
-        List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
-        rowList.add(keyboardButtonsRow1);
-        rowList.add(keyboardButtonsRow2);
-        rowList.add(keyboardButtonsRow3);
-        inlineKeyboardMarkup.setKeyboard(rowList);
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        int rowsCount = 12; // 12 строк
+        int colsCount = 8;  // 8 столбцов
+        for (int i = 0; i < rowsCount; i++) {
+            List<InlineKeyboardButton> row = new ArrayList<>();
+            for (int j = 0; j < colsCount; j++) {
+                String buttonText = buttons[i][j].getEmoji(); //эмодзи для кол-ва бомб вокруг
+                String callbackData = String.format("%02d:%02d", i, j);
+                // Создаем кнопку
+                InlineKeyboardButton button = InlineKeyboardButton.builder()
+                        .text(buttonText)
+                        .callbackData(callbackData)
+                        .build();
+                // Добавляем кнопку в строку
+                row.add(button);
+            }
+            // Добавляем строку в клавиатуру
+            rows.add(row);
+        }
+        // Устанавливаем строки в клавиатуру
+        inlineKeyboardMarkup.setKeyboard(rows);
         return inlineKeyboardMarkup;
+    }
+
+    //Получает данные о кнопке по координатам
+    //Зачем оно нам, если внутри Field мы и так имеем доступ к buttons?
+    private Button touchButtonByName(String buttonName){
+        int y_coord = Integer.parseInt(buttonName.substring(0, 2));
+        int x_coord = Integer.parseInt(buttonName.substring(2));
+
+        return buttons[y_coord][x_coord];
     }
 }
