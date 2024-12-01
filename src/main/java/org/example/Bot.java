@@ -14,14 +14,18 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.example.Constant.*;
+
 public class Bot extends TelegramLongPollingBot {
+    Field field;
+
     @Override
     public void onUpdateReceived(Update update) {
         if(update.hasMessage() && update.getMessage().hasText()){
             if(update.getMessage().getText().equals("/start")){
                 try {
                     SendMessage msg = new SendMessage();
-                    msg.setText("Выбор режима");
+                    msg.setText(ModeSelection);
                     msg.setChatId(update.getMessage().getChatId());
                     msg.setReplyMarkup(get_InlineKeyboardButton());
                     execute(msg);
@@ -50,12 +54,12 @@ public class Bot extends TelegramLongPollingBot {
         InlineKeyboardButton inlineKeyboardButton1 = new InlineKeyboardButton();
         InlineKeyboardButton inlineKeyboardButton2 = new InlineKeyboardButton();
         InlineKeyboardButton inlineKeyboardButton3 = new InlineKeyboardButton();
-        inlineKeyboardButton1.setText("Обучение");
-        inlineKeyboardButton1.setCallbackData("Обучение");
-        inlineKeyboardButton2.setText("Стандартный");
-        inlineKeyboardButton2.setCallbackData("Стандартный");
-        inlineKeyboardButton3.setText("Реальное время");
-        inlineKeyboardButton3.setCallbackData("реальное_время");
+        inlineKeyboardButton1.setText(Training);
+        inlineKeyboardButton1.setCallbackData("-hОбучение");
+        inlineKeyboardButton2.setText(Standart);
+        inlineKeyboardButton2.setCallbackData("-sСтандартный");
+        inlineKeyboardButton3.setText(RealTime);
+        inlineKeyboardButton3.setCallbackData("-rреальное_время");
         List<InlineKeyboardButton> keyboardButtonsRow1 = new ArrayList<>();
         List<InlineKeyboardButton> keyboardButtonsRow2 = new ArrayList<>();
         List<InlineKeyboardButton> keyboardButtonsRow3 = new ArrayList<>();
@@ -73,13 +77,14 @@ public class Bot extends TelegramLongPollingBot {
     private void handleCallbackQuery(Update update)
     {
         CallbackQuery currentCallback = update.getCallbackQuery();
-        String call_data = currentCallback.getData();
+        String callData = currentCallback.getData();
+        String callDataCase = callData.substring(0, 2);
         int messageId = currentCallback.getMessage().getMessageId();
         String chatId = Long.toString(currentCallback.getMessage().getChatId());
         SendMessage message = new SendMessage();
-        switch (call_data)
+        switch (callDataCase)
         {
-            case "Обучение":
+            case "-h":
                 message.setText("Сработал Обучение");
                 message.setChatId(chatId);
                 try {
@@ -88,11 +93,11 @@ public class Bot extends TelegramLongPollingBot {
                     e.printStackTrace();
                 }
                 break;
-            case "Стандартный" :
+            case "-s" :
                 //по идее нам реализацию каждой из функций для обработки режимов нужно сделать в отдельном файле/классе с логикой бота
                 startStandart(chatId, messageId);
                 break;
-            case "реальное_время" :
+            case "-r" :
                 message.setText("Сработал реальное_время");
                 message.setChatId(chatId);
                 try {
@@ -101,7 +106,8 @@ public class Bot extends TelegramLongPollingBot {
                     e.printStackTrace();
                 }
                 break;
-
+            //срабатывание кнопки из поля
+            case "-b":
         }
     }
 
@@ -121,10 +127,9 @@ public class Bot extends TelegramLongPollingBot {
     private void startStandart(String chatId, int messageId){
         SendMessage message = new SendMessage();
         deleteLastMessage(chatId, messageId);
-        message.setText("Количество оставшихся мин: ");
+        message.setText(CountMines);
         message.setChatId(chatId);
-
-        Field field = new Field();
+        field = new Field(12, 8);
         InlineKeyboardMarkup inlineKeyboardMarkup = field.getInlineKeyboardButton();
         message.setReplyMarkup(inlineKeyboardMarkup);
 

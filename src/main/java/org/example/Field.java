@@ -9,9 +9,24 @@ import javax.validation.constraints.Null;
 
 
 public class Field {
-    private Button[][] buttons = new Button[12][8];
-    private boolean isEndGame = false;
-    private boolean startedGame = false;
+    private Button[][] buttons;
+    private int countRow;
+    private int countCol;
+    private boolean isEndGame;
+    private boolean startedGame;
+
+    public Field(int countRow, int countCol){
+        this.isEndGame = false;
+        this.startedGame = false;
+        this.countRow = countRow;
+        this.countCol =countCol;
+        this.buttons = new Button[countRow][countCol];
+        for (int i = 0; i < countRow; i++) {
+            for (int j = 0; j < countCol; j++) {
+                buttons[i][j] = new Button(); // Инициализация с координатами (i, j)
+            }
+        }
+    }
 
     public void setIsEndGame(boolean isEndGame){
         this.isEndGame = isEndGame;
@@ -25,11 +40,25 @@ public class Field {
     public boolean getStartedGame(){
         return startedGame;
     }
+    public int getCountRow() {
+        return countRow;
+    }
+    public void setCountRow(int countRow) {
+        this.countRow = countRow;
+    }
+    public int getCountCol() {
+        return countCol;
+    }
+    public void setCountCol(int countCol) {
+        this.countCol = countCol;
+    }
+    public Button[][] getButtons(){return buttons;}
+
 
     private int[] coordMaker(){
         Random random = new Random();
-        int bomb_y_coord = random.nextInt(12);
-        int bomb_x_coord = random.nextInt(8);
+        int bomb_y_coord = random.nextInt(this.getCountRow());
+        int bomb_x_coord = random.nextInt(this.getCountCol());
         return new int []{bomb_y_coord, bomb_x_coord};
     }
 
@@ -46,8 +75,8 @@ public class Field {
                 int current_button_y = y_coord-1+i;
                 int current_button_x = x_coord-1+j;
                 boolean currentButtonOpen = buttons[current_button_y][current_button_x].getOpen();
-                if(current_button_y < 12 && current_button_y > -1
-                        && current_button_x < 8 && current_button_x > -1
+                if(current_button_y < this.getCountRow() && current_button_y > -1
+                        && current_button_x < this.getCountCol() && current_button_x > -1
                         && !currentButtonOpen) {
                     if(bt.getFlag()){
                         continue;
@@ -70,7 +99,7 @@ public class Field {
 
         if (!getStartedGame()){
             setStartedGame(true);
-            int countBombs = 16;
+            int countBombs = (int) Math.ceil(this.getCountRow() * this.getCountCol() * 17.0 / 100); //17% поля - бомбы
             int [] place;
 
             while (countBombs > 0) {
@@ -83,8 +112,8 @@ public class Field {
                             int current_button_y = place[0]-1+i;
                             int current_button_x = place[1]-1+j;
                             int property = buttons[current_button_y][current_button_x].getProperty();
-                            if(current_button_y < 12 && current_button_y > -1
-                                    && current_button_x < 8 && current_button_x > -1
+                            if(current_button_y < this.getCountRow() && current_button_y > -1
+                                    && current_button_x < this.getCountCol() && current_button_x > -1
                                     && property != 9){
                                 buttons[current_button_y][current_button_x].setProperty(property+1);
                             }
@@ -106,8 +135,8 @@ public class Field {
                         for (int j = 0; j < 3; j++){
                             int current_button_y = y_coord-1+i;
                             int current_button_x = x_coord-1+j;
-                            if(current_button_y < 12 && current_button_y > -1
-                                    && current_button_x < 8 && current_button_x > -1
+                            if(current_button_y < this.getCountRow() && current_button_y > -1
+                                    && current_button_x < this.getCountCol() && current_button_x > -1
                                     && i != 1 && j != 1){
                                 counterFlags += 1;
                             }
@@ -143,13 +172,13 @@ public class Field {
     public InlineKeyboardMarkup getInlineKeyboardButton(){
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
-        int rowsCount = 12; // 12 строк
-        int colsCount = 8;  // 8 столбцов
+        int rowsCount = this.getCountRow(); // 12 строк
+        int colsCount = this.getCountCol();  // 8 столбцов
         for (int i = 0; i < rowsCount; i++) {
             List<InlineKeyboardButton> row = new ArrayList<>();
             for (int j = 0; j < colsCount; j++) {
-                String buttonText = buttons[i][j].getEmoji(); //эмодзи для кол-ва бомб вокруг
-                String callbackData = String.format("%02d:%02d", i, j);
+                String buttonText = buttons[i][j].getEmoji();
+                String callbackData = String.format("-b%02d%02d", i, j);
                 // Создаем кнопку
                 InlineKeyboardButton button = InlineKeyboardButton.builder()
                         .text(buttonText)

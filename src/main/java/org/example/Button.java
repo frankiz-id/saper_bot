@@ -8,6 +8,7 @@ public class Button {
     public Button(){
         this.property = 0;
         this.open = false;
+        this.flag = false;
     }
 
     public void setProperty(int property){
@@ -34,12 +35,14 @@ public class Button {
     }
 
     public String getEmoji(){
-        if (getFlag()){ return "\uD83D\uDEA9"; }
-        return switch (property){
-            case 0 -> "\uFE0F\uFE0F";
-            case 1, 2, 3, 4, 5, 6, 7, 8 -> String.valueOf(property);
-            case 9 -> "\uD83D\uDCA3";
-            default -> null;
+        if (!(this.getOpen())){ return "\uD83D\uDEAB"; } // закрытое поле
+        if (this.getFlag()){ return "\uD83D\uDEA9"; } // флажок
+        int prop = property;
+        return switch (prop) {
+            case 0 -> "\uFE0F\uFE0F"; //пустое поле
+            case 1, 2, 3, 4, 5, 6, 7, 8 -> String.valueOf(prop);
+            case 9 -> "\uD83D\uDCA3"; //бомба
+            default -> "";
         };
     }
 }
@@ -49,4 +52,4 @@ public class Button {
 // "\uD83D\uDCA3"; //эмодзи бомбы
 // "\uD83D\uDCA5"; //эмодзи взрыва
 // "\u200B"; //эмодзи пустого поля
-// "⬜\uFE0F"; //эмодзи закрытого поля
+// "\uD83D\uDEAB"; //эмодзи закрытого поля
