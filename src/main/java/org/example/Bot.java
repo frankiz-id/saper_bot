@@ -25,9 +25,11 @@ public class Bot extends TelegramLongPollingBot {
             if(update.getMessage().getText().equals("/start")){
                 try {
                     SendMessage msg = new SendMessage();
+                    int messageId = update.getMessage().getMessageId();
+                    String chatId = String.valueOf(update.getMessage().getChatId());
                     msg.setText(ModeSelection);
                     msg.setChatId(update.getMessage().getChatId());
-                    msg.setReplyMarkup(get_InlineKeyboardButton());
+                    msg.setReplyMarkup(get_InlineKeyboardButton(chatId, messageId));
                     execute(msg);
                 } catch (TelegramApiException e) {
                     e.printStackTrace();
@@ -48,8 +50,9 @@ public class Bot extends TelegramLongPollingBot {
         return System.getenv("token");
     }
 
-    public static InlineKeyboardMarkup get_InlineKeyboardButton()
+    public InlineKeyboardMarkup get_InlineKeyboardButton(String chatId, int messageId)
     {
+        deleteLastMessage(chatId, messageId);
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         InlineKeyboardButton inlineKeyboardButton1 = new InlineKeyboardButton();
         InlineKeyboardButton inlineKeyboardButton2 = new InlineKeyboardButton();
@@ -78,7 +81,10 @@ public class Bot extends TelegramLongPollingBot {
     {
         CallbackQuery currentCallback = update.getCallbackQuery();
         String callData = currentCallback.getData();
+        //System.out.println(callData);
         String callDataCase = callData.substring(0, 2);
+        //System.out.println(callDataCase);
+
         int messageId = currentCallback.getMessage().getMessageId();
         String chatId = Long.toString(currentCallback.getMessage().getChatId());
         SendMessage message = new SendMessage();
@@ -95,7 +101,9 @@ public class Bot extends TelegramLongPollingBot {
                 break;
             case "-s" :
                 //по идее нам реализацию каждой из функций для обработки режимов нужно сделать в отдельном файле/классе с логикой бота
-                startStandart(chatId, messageId);
+                field = new Field(12, 8);
+                System.out.println(field.getMode());
+                playStandart(chatId, messageId);
                 break;
             case "-r" :
                 message.setText("Сработал реальное_время");
@@ -108,6 +116,36 @@ public class Bot extends TelegramLongPollingBot {
                 break;
             //срабатывание кнопки из поля
             case "-b":
+                String comand = callData.substring(2);
+                if (comand.equals("Флаг")){
+                    field.setMode(false);
+                    System.out.println(field.getMode());
+                }
+                else if (comand.equals("Копать")){
+                    field.setMode(true);
+                    System.out.println(field.getMode());
+                }
+                //пришла кнопка игрового поля
+                else{
+                    if(field.getIsEndGame()){
+                        try {
+                            SendMessage msg = new SendMessage();
+                            msg.setText(ModeSelection);
+                            msg.setChatId(chatId);
+                            msg.setReplyMarkup(get_InlineKeyboardButton(chatId, messageId));
+                            execute(msg);
+                        } catch (TelegramApiException e) {
+                            e.printStackTrace();
+                        }
+                    break;
+                    }
+                    //System.out.println(callData.substring(2));
+                    field.updateData(comand);
+                    if(field.touchButtonByName(comand).isBomb()){
+                        field.bomber();
+                    }
+                    playStandart(chatId, messageId);
+                }
         }
     }
 
@@ -124,15 +162,13 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
-    private void startStandart(String chatId, int messageId){
-        SendMessage message = new SendMessage();
+    private void playStandart(String chatId, int messageId){
         deleteLastMessage(chatId, messageId);
+        SendMessage message = new SendMessage();
         message.setText(CountMines);
         message.setChatId(chatId);
-        field = new Field(12, 8);
         InlineKeyboardMarkup inlineKeyboardMarkup = field.getInlineKeyboardButton();
         message.setReplyMarkup(inlineKeyboardMarkup);
-
         try {
             execute(message);
         } catch (TelegramApiException e) {

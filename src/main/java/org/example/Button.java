@@ -35,13 +35,13 @@ public class Button {
     }
 
     public String getEmoji(){
-        if (!(this.getOpen())){ return "\uD83D\uDEAB"; } // закрытое поле
         if (this.getFlag()){ return "\uD83D\uDEA9"; } // флажок
+        if (!(this.getOpen())){ return "\uD83D\uDEAB"; } // закрытое поле
         int prop = property;
         return switch (prop) {
             case 0 -> "\uFE0F\uFE0F"; //пустое поле
             case 1, 2, 3, 4, 5, 6, 7, 8 -> String.valueOf(prop);
-            case 9 -> "\uD83D\uDCA3"; //бомба
+            case 9 -> "\uD83D\uDCA5"; //бомба
             default -> "";
         };
     }

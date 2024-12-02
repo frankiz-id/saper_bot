@@ -3,6 +3,7 @@ package org.example;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import java.util.*;
+import static org.example.Constant.*;
 import java.lang.reflect.Array;
 import org.example.Button;
 import javax.validation.constraints.Null;
@@ -14,16 +15,19 @@ public class Field {
     private int countCol;
     private boolean isEndGame;
     private boolean startedGame;
+    //false - флаг, true - копать
+    private boolean mode;
 
     public Field(int countRow, int countCol){
         this.isEndGame = false;
         this.startedGame = false;
+        this.mode = true;
         this.countRow = countRow;
         this.countCol =countCol;
         this.buttons = new Button[countRow][countCol];
         for (int i = 0; i < countRow; i++) {
             for (int j = 0; j < countCol; j++) {
-                buttons[i][j] = new Button(); // Инициализация с координатами (i, j)
+                buttons[i][j] = new Button();
             }
         }
     }
@@ -33,6 +37,12 @@ public class Field {
     }
     public boolean getIsEndGame(){
         return isEndGame;
+    }
+    public void setMode(boolean mode){
+        this.mode = mode;
+    }
+    public boolean getMode(){
+        return mode;
     }
     public void setStartedGame(boolean startedGame){
         this.startedGame = startedGame;
@@ -59,100 +69,132 @@ public class Field {
         Random random = new Random();
         int bomb_y_coord = random.nextInt(this.getCountRow());
         int bomb_x_coord = random.nextInt(this.getCountCol());
-        return new int []{bomb_y_coord, bomb_x_coord};
+        //System.out.println(bomb_y_coord);
+
+        return new int[]{bomb_y_coord, bomb_x_coord};
     }
 
     //открывает все клетки вокруг данной
+//    private void opener(int y_coord, int x_coord){
+//        Button bt = buttons[y_coord][x_coord];
+//        buttons[y_coord][x_coord].setOpen(true);
+//        if (bt.isBomb()){
+//            setIsEndGame(true);
+//            return;
+//        }
+//        for (int i = 0; i < 3; i++){
+//            for (int j = 0; j < 3; j++){
+//                int current_button_y = y_coord-1+i;
+//                int current_button_x = x_coord-1+j;
+//                boolean currentButtonOpen = buttons[current_button_y][current_button_x].getOpen();
+//                if(current_button_y < this.getCountRow() && current_button_y > -1
+//                        && current_button_x < this.getCountCol() && current_button_x > -1
+//                        && !currentButtonOpen) {
+//                    if(bt.getFlag()){
+//                        continue;
+//                    }
+//                    if(bt.getProperty() == 0){
+//                        opener(y_coord, x_coord);
+//                    }
+//                    else{
+//                        buttons[y_coord][x_coord].setOpen(true);
+//                    }
+//                }
+//            }
+//        }
+//    }
+
     private void opener(int y_coord, int x_coord){
-        Button bt = buttons[y_coord][x_coord];
         buttons[y_coord][x_coord].setOpen(true);
-        if (bt.isBomb()){
+        if (buttons[y_coord][x_coord].isBomb()){
             setIsEndGame(true);
             return;
         }
-        for (int i = 0; i < 3; i++){
-            for (int j = 0; j < 3; j++){
-                int current_button_y = y_coord-1+i;
-                int current_button_x = x_coord-1+j;
-                boolean currentButtonOpen = buttons[current_button_y][current_button_x].getOpen();
-                if(current_button_y < this.getCountRow() && current_button_y > -1
-                        && current_button_x < this.getCountCol() && current_button_x > -1
-                        && !currentButtonOpen) {
-                    if(bt.getFlag()){
-                        continue;
-                    }
-                    if(bt.getProperty() == 0){
-                        opener(y_coord, x_coord);
+        for (int i = -1; i <= 1; i++){
+            for (int j = -1; j <= 1; j++){
+                if (i == 0 && j == 0){
+                    continue;
+                }
+                int curY = y_coord + i;
+                int curX = x_coord + j;
+                if (curY >= 0 && curY < 12 && curX >= 0 && curX < 8 && !buttons[curY][curX].getFlag() && !buttons[curY][curX].getOpen()){
+                    if(buttons[curY][curX].getProperty() == 0){
+                        opener(curY, curX);
                     }
                     else{
-                        buttons[y_coord][x_coord].setOpen(true);
+                        buttons[curY][curX].setOpen(true);
                     }
                 }
             }
         }
     }
 
-    public void updateData(String buttonName, boolean mode){
+    public void updateData(String buttonName){
 
         int y_coord = Integer.parseInt(buttonName.substring(0, 2));
         int x_coord = Integer.parseInt(buttonName.substring(2));
-
         if (!getStartedGame()){
-            setStartedGame(true);
-            int countBombs = (int) Math.ceil(this.getCountRow() * this.getCountCol() * 17.0 / 100); //17% поля - бомбы
-            int [] place;
+            this.setStartedGame(true);
+            int countBombs = (int) Math.ceil(this.getCountRow() * this.getCountCol() * 16.0 / 100); //16% поля - бомбы
+            //int countBombs = 16; //16% поля - бомбы
 
-            while (countBombs > 0) {
-                place = coordMaker();
-                if(Math.abs(place[1] - x_coord) > 1 && Math.abs(place[0] - y_coord) > 1
-                        && !buttons[place[0]][place[1]].isBomb()){
+            while (countBombs != 0) {
+                int[] place = coordMaker();
+                //System.out.print(place[0]);
+                //System.out.println(" " + place[1]);
+                if((Math.abs(place[0] - y_coord) > 1 || Math.abs(place[1] - x_coord) > 1) && (!(buttons[place[0]][place[1]].isBomb()))){
                     buttons[place[0]][place[1]].setProperty(9);
-                    for (int i = 0; i < 3; i++){
-                        for (int j = 0; j < 3; j++){
-                            int current_button_y = place[0]-1+i;
-                            int current_button_x = place[1]-1+j;
-                            int property = buttons[current_button_y][current_button_x].getProperty();
-                            if(current_button_y < this.getCountRow() && current_button_y > -1
-                                    && current_button_x < this.getCountCol() && current_button_x > -1
-                                    && property != 9){
-                                buttons[current_button_y][current_button_x].setProperty(property+1);
+                    countBombs -= 1;
+                }
+            }
+            for (int i = 0; i < 12; i++){
+                for (int j = 0; j < 8; j++) {
+                    if (buttons[i][j].isBomb()){
+                        for (int y = -1; y <= 1; y++){
+                            for (int x = -1; x <= 1; x++){
+                                if (y == 0 && x == 0){
+                                    continue;
+                                }
+                                int curY = i + y;
+                                int curX = j + x;
+                                if (curY >= 0 && curY < 12 && curX >= 0 && curX < 8 && !buttons[curY][curX].isBomb()){
+                                    buttons[curY][curX].setProperty(buttons[curY][curX].getProperty()+1);
+                                }
                             }
                         }
                     }
-                    countBombs -= 1;
                 }
             }
             opener(y_coord, x_coord);
         }
         else{
-            Button bt = buttons[y_coord][x_coord];
-            boolean curFlag = bt.getFlag();
             //mode 1 - открывать, mode 0 - флажок
             if (mode){
-                if(bt.getOpen()){
+                if(buttons[y_coord][x_coord].getOpen()){
                     int counterFlags = 0;
-                    for (int i = 0; i < 3; i++){
-                        for (int j = 0; j < 3; j++){
-                            int current_button_y = y_coord-1+i;
-                            int current_button_x = x_coord-1+j;
-                            if(current_button_y < this.getCountRow() && current_button_y > -1
-                                    && current_button_x < this.getCountCol() && current_button_x > -1
-                                    && i != 1 && j != 1){
+                    for (int i = -1; i <= 1; i++){
+                        for (int j = -1; j <= 1; j++){
+                            if (i == 0 && j == 0){
+                                continue;
+                            }
+                            int curY = y_coord + i;
+                            int curX = x_coord + j;
+                            if (curY >= 0 && curY < 12 && curX >= 0 && curX < 8 && buttons[curY][curX].getFlag()){
                                 counterFlags += 1;
                             }
                         }
                     }
-                    if (counterFlags == bt.getProperty()){
+                    if (counterFlags == buttons[y_coord][x_coord].getProperty()){
                         opener(y_coord, x_coord);
                     }
                 }
                 else{
-                    buttons[y_coord][x_coord].setFlag(!curFlag);
-                    if (bt.isBomb()){
+                    buttons[y_coord][x_coord].setFlag(false);
+                    if (buttons[y_coord][x_coord].isBomb()){
                         setIsEndGame(true);
                         return;
                     }
-                    if (bt.getProperty() == 0){
+                    if (buttons[y_coord][x_coord].getProperty() == 0){
                         opener(y_coord, x_coord);
                     }
                     else{
@@ -162,8 +204,10 @@ public class Field {
             }
             else{
                 //флажок можно установить/снять только на закрытую
-                if (!bt.getOpen()){
-                    buttons[y_coord][x_coord].setFlag(!curFlag);
+                if (!buttons[y_coord][x_coord].getOpen()){
+                    System.out.println(buttons[y_coord][x_coord].getFlag());
+                    buttons[y_coord][x_coord].setFlag(!buttons[y_coord][x_coord].getFlag());
+                    System.out.println(buttons[y_coord][x_coord].getFlag());
                 }
             }
         }
@@ -178,6 +222,7 @@ public class Field {
             List<InlineKeyboardButton> row = new ArrayList<>();
             for (int j = 0; j < colsCount; j++) {
                 String buttonText = buttons[i][j].getEmoji();
+                //String buttonText = String.valueOf(buttons[i][j].getProperty());
                 String callbackData = String.format("-b%02d%02d", i, j);
                 // Создаем кнопку
                 InlineKeyboardButton button = InlineKeyboardButton.builder()
@@ -190,14 +235,36 @@ public class Field {
             // Добавляем строку в клавиатуру
             rows.add(row);
         }
+        List<InlineKeyboardButton> rowFlagDig = new ArrayList<>();
+        InlineKeyboardButton buttonFlag = new InlineKeyboardButton();
+        buttonFlag.setText(ModeFlag);
+        buttonFlag.setCallbackData("-bФлаг");
+        InlineKeyboardButton buttonDig = new InlineKeyboardButton();
+        buttonDig.setText(ModeDig);
+        buttonDig.setCallbackData("-bКопать");
+        rowFlagDig.add(buttonFlag);
+        rowFlagDig.add(buttonDig);
+        rows.add(rowFlagDig);
         // Устанавливаем строки в клавиатуру
         inlineKeyboardMarkup.setKeyboard(rows);
         return inlineKeyboardMarkup;
     }
 
+    public void bomber(){
+        for (int i = 0; i < 12; i++){
+            for (int j = 0; j < 8; j++) {
+                if (buttons[i][j].isBomb()){
+                    buttons[i][j].setOpen(true);
+                }
+            }
+        }
+    }
+
+
+
     //Получает данные о кнопке по координатам
     //Зачем оно нам, если внутри Field мы и так имеем доступ к buttons?
-    private Button touchButtonByName(String buttonName){
+    public Button touchButtonByName(String buttonName){
         int y_coord = Integer.parseInt(buttonName.substring(0, 2));
         int x_coord = Integer.parseInt(buttonName.substring(2));
 
