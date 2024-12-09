@@ -13,29 +13,43 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.example.Constant.*;
 
 public class Bot extends TelegramLongPollingBot {
-    Field field;
+    public final Queue<Update> receiveQueue = new ConcurrentLinkedQueue<>();
+    private boolean working = false;
+    private HashMap<String, User> users = new HashMap<>();
+    private Field field;
 
     @Override
     public void onUpdateReceived(Update update) {
-        if(update.hasMessage() && update.getMessage().hasText()){
-            if(update.getMessage().getText().equals("/start")){
-                try {
-                    SendMessage msg = new SendMessage();
-                    int messageId = update.getMessage().getMessageId();
-                    String chatId = String.valueOf(update.getMessage().getChatId());
-                    msg.setText(ModeSelection);
-                    msg.setChatId(update.getMessage().getChatId());
-                    msg.setReplyMarkup(get_InlineKeyboardButton(chatId, messageId));
-                    execute(msg);
-                } catch (TelegramApiException e) {
-                    e.printStackTrace();
-                }
+        if(working){
+            receiveQueue.add(update);
+        }
+        else{
+            working = true;
+            executeUpdate(update);
+        }
+    }
+
+    private void executeUpdate(Update update){
+        if (update.hasMessage() && update.getMessage().hasText()) {
+            if (update.getMessage().getText().equals("/start")) {
+                String chatId = String.valueOf(update.getMessage().getChatId());
+                users.put(chatId, new User(chatId));
+                SendMessage msg = new SendMessage();
+//                    int messageId = update.getMessage().getMessageId();
+//                    msg.setText(ModeSelection);
+//                    msg.setChatId(update.getMessage().getChatId());
+//                    msg.setReplyMarkup(getInlineKeyboardButton(chatId, messageId));
+//                    execute(msg);
+                sendMessage(msg, ModeSelection, chatId, getInlineKeyboardButton(chatId, update.getMessage().getMessageId()));
             }
-        }else if(update.hasCallbackQuery()){
+        } else if (update.hasCallbackQuery()) {
             handleCallbackQuery(update);
         }
     }
@@ -50,8 +64,7 @@ public class Bot extends TelegramLongPollingBot {
         return System.getenv("token");
     }
 
-    public InlineKeyboardMarkup get_InlineKeyboardButton(String chatId, int messageId)
-    {
+    public InlineKeyboardMarkup getInlineKeyboardButton(String chatId, int messageId) {
         deleteLastMessage(chatId, messageId);
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         InlineKeyboardButton inlineKeyboardButton1 = new InlineKeyboardButton();
@@ -77,19 +90,15 @@ public class Bot extends TelegramLongPollingBot {
         return inlineKeyboardMarkup;
     }
 
-    private void handleCallbackQuery(Update update)
-    {
+    private void handleCallbackQuery(Update update) {
         CallbackQuery currentCallback = update.getCallbackQuery();
         String callData = currentCallback.getData();
-        //System.out.println(callData);
         String callDataCase = callData.substring(0, 2);
-        //System.out.println(callDataCase);
 
         int messageId = currentCallback.getMessage().getMessageId();
         String chatId = Long.toString(currentCallback.getMessage().getChatId());
         SendMessage message = new SendMessage();
-        switch (callDataCase)
-        {
+        switch (callDataCase) {
             case "-h":
                 message.setText("Сработал Обучение");
                 message.setChatId(chatId);
@@ -99,13 +108,13 @@ public class Bot extends TelegramLongPollingBot {
                     e.printStackTrace();
                 }
                 break;
-            case "-s" :
+            case "-s":
                 //по идее нам реализацию каждой из функций для обработки режимов нужно сделать в отдельном файле/классе с логикой бота
-                field = new Field(12, 8);
-                System.out.println(field.getMode());
+                //field = new Field(12, 8);
+                users.get(chatId).setMyField(12, 8);
                 playStandart(chatId, messageId);
                 break;
-            case "-r" :
+            case "-r":
                 message.setText("Сработал реальное_время");
                 message.setChatId(chatId);
                 try {
@@ -117,35 +126,40 @@ public class Bot extends TelegramLongPollingBot {
             //срабатывание кнопки из поля
             case "-b":
                 String comand = callData.substring(2);
-                if (comand.equals("Флаг")){
-                    field.setMode(false);
-                    System.out.println(field.getMode());
-                }
-                else if (comand.equals("Копать")){
-                    field.setMode(true);
-                    System.out.println(field.getMode());
+                if (comand.equals("Флаг")) {
+                    users.get(chatId).getMyField().setMode(false);
+                    working = false;
+                    if (!receiveQueue.isEmpty()){
+                        onUpdateReceived(receiveQueue.poll());
+                    }
+                } else if (comand.equals("Копать")) {
+                    users.get(chatId).getMyField().setMode(true);
+                    working = false;
+                    if (!receiveQueue.isEmpty()){
+                        onUpdateReceived(receiveQueue.poll());
+                    }
+                    //System.out.println(users.get(chatId).getMyField().getMode());
                 }
                 //пришла кнопка игрового поля
-                else{
-                    if(field.getIsEndGame()){
-                        try {
-                            SendMessage msg = new SendMessage();
-                            msg.setText(ModeSelection);
-                            msg.setChatId(chatId);
-                            msg.setReplyMarkup(get_InlineKeyboardButton(chatId, messageId));
-                            execute(msg);
-                        } catch (TelegramApiException e) {
-                            e.printStackTrace();
-                        }
-                    break;
+                else {
+                    if (users.get(chatId).getMyField().getIsEndGame()) {
+                        SendMessage msg = new SendMessage();
+//                            msg.setText(ModeSelection);
+//                            msg.setChatId(chatId);
+//                            msg.setReplyMarkup(getInlineKeyboardButton(chatId, messageId));
+//                            execute(msg);
+                        sendMessage(msg, ModeSelection, chatId, getInlineKeyboardButton(chatId, messageId));
+                        break;
                     }
                     //System.out.println(callData.substring(2));
-                    field.updateData(comand);
-                    if(field.touchButtonByName(comand).isBomb()){
-                        field.bomber();
+                    users.get(chatId).getMyField().updateData(comand);
+                    if (users.get(chatId).getMyField().touchButtonByName(comand).isBomb()
+                            && !users.get(chatId).getMyField().touchButtonByName(comand).getFlag()) {
+                        users.get(chatId).getMyField().showBombs();
                     }
                     playStandart(chatId, messageId);
                 }
+
         }
     }
 
@@ -162,17 +176,28 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
-    private void playStandart(String chatId, int messageId){
-        deleteLastMessage(chatId, messageId);
-        SendMessage message = new SendMessage();
-        message.setText(CountMines);
-        message.setChatId(chatId);
-        InlineKeyboardMarkup inlineKeyboardMarkup = field.getInlineKeyboardButton();
+    private void sendMessage(SendMessage message, String text, String chatID, InlineKeyboardMarkup inlineKeyboardMarkup){
+        message.setText(text);
+        message.setChatId(chatID);
         message.setReplyMarkup(inlineKeyboardMarkup);
         try {
             execute(message);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
+        working = false;
+        if (!receiveQueue.isEmpty()){
+            onUpdateReceived(receiveQueue.poll());
+        }
+    }
+
+    private void playStandart(String chatId, int messageId) {
+        deleteLastMessage(chatId, messageId);
+        SendMessage message = new SendMessage();
+//        message.setText(CountMines);
+//        message.setChatId(chatId);
+//        InlineKeyboardMarkup inlineKeyboardMarkup = field.getInlineKeyboardButton();
+//        message.setReplyMarkup(inlineKeyboardMarkup);
+        sendMessage(message, CountMines, chatId, users.get(chatId).getMyField().getInlineKeyboardButton());
     }
 }

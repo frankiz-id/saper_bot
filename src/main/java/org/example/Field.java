@@ -65,7 +65,7 @@ public class Field {
     public Button[][] getButtons(){return buttons;}
 
 
-    private int[] coordMaker(){
+    private int[] generateCoord(){
         Random random = new Random();
         int bomb_y_coord = random.nextInt(this.getCountRow());
         int bomb_x_coord = random.nextInt(this.getCountCol());
@@ -74,37 +74,8 @@ public class Field {
         return new int[]{bomb_y_coord, bomb_x_coord};
     }
 
-    //открывает все клетки вокруг данной
-//    private void opener(int y_coord, int x_coord){
-//        Button bt = buttons[y_coord][x_coord];
-//        buttons[y_coord][x_coord].setOpen(true);
-//        if (bt.isBomb()){
-//            setIsEndGame(true);
-//            return;
-//        }
-//        for (int i = 0; i < 3; i++){
-//            for (int j = 0; j < 3; j++){
-//                int current_button_y = y_coord-1+i;
-//                int current_button_x = x_coord-1+j;
-//                boolean currentButtonOpen = buttons[current_button_y][current_button_x].getOpen();
-//                if(current_button_y < this.getCountRow() && current_button_y > -1
-//                        && current_button_x < this.getCountCol() && current_button_x > -1
-//                        && !currentButtonOpen) {
-//                    if(bt.getFlag()){
-//                        continue;
-//                    }
-//                    if(bt.getProperty() == 0){
-//                        opener(y_coord, x_coord);
-//                    }
-//                    else{
-//                        buttons[y_coord][x_coord].setOpen(true);
-//                    }
-//                }
-//            }
-//        }
-//    }
 
-    private void opener(int y_coord, int x_coord){
+    private void openCells(int y_coord, int x_coord){
         buttons[y_coord][x_coord].setOpen(true);
         if (buttons[y_coord][x_coord].isBomb()){
             setIsEndGame(true);
@@ -119,7 +90,7 @@ public class Field {
                 int curX = x_coord + j;
                 if (curY >= 0 && curY < 12 && curX >= 0 && curX < 8 && !buttons[curY][curX].getFlag() && !buttons[curY][curX].getOpen()){
                     if(buttons[curY][curX].getProperty() == 0){
-                        opener(curY, curX);
+                        openCells(curY, curX);
                     }
                     else{
                         buttons[curY][curX].setOpen(true);
@@ -129,43 +100,47 @@ public class Field {
         }
     }
 
-    public void updateData(String buttonName){
+    private void startGame(int y_coord, int x_coord){
+        this.setStartedGame(true);
+        int countBombs = (int) Math.ceil(this.getCountRow() * this.getCountCol() * 16.0 / 100); //16% поля - бомбы
+        //int countBombs = 16; //16% поля - бомбы
 
-        int y_coord = Integer.parseInt(buttonName.substring(0, 2));
-        int x_coord = Integer.parseInt(buttonName.substring(2));
-        if (!getStartedGame()){
-            this.setStartedGame(true);
-            int countBombs = (int) Math.ceil(this.getCountRow() * this.getCountCol() * 16.0 / 100); //16% поля - бомбы
-            //int countBombs = 16; //16% поля - бомбы
-
-            while (countBombs != 0) {
-                int[] place = coordMaker();
-                //System.out.print(place[0]);
-                //System.out.println(" " + place[1]);
-                if((Math.abs(place[0] - y_coord) > 1 || Math.abs(place[1] - x_coord) > 1) && (!(buttons[place[0]][place[1]].isBomb()))){
-                    buttons[place[0]][place[1]].setProperty(9);
-                    countBombs -= 1;
-                }
+        while (countBombs != 0) {
+            int[] place = generateCoord();
+            //System.out.print(place[0]);
+            //System.out.println(" " + place[1]);
+            if((Math.abs(place[0] - y_coord) > 1 || Math.abs(place[1] - x_coord) > 1) && (!(buttons[place[0]][place[1]].isBomb()))){
+                buttons[place[0]][place[1]].setProperty(9);
+                countBombs -= 1;
             }
-            for (int i = 0; i < 12; i++){
-                for (int j = 0; j < 8; j++) {
-                    if (buttons[i][j].isBomb()){
-                        for (int y = -1; y <= 1; y++){
-                            for (int x = -1; x <= 1; x++){
-                                if (y == 0 && x == 0){
-                                    continue;
-                                }
-                                int curY = i + y;
-                                int curX = j + x;
-                                if (curY >= 0 && curY < 12 && curX >= 0 && curX < 8 && !buttons[curY][curX].isBomb()){
-                                    buttons[curY][curX].setProperty(buttons[curY][curX].getProperty()+1);
-                                }
+        }
+        for (int i = 0; i < 12; i++){
+            for (int j = 0; j < 8; j++) {
+                if (buttons[i][j].isBomb()){
+                    for (int y = -1; y <= 1; y++){
+                        for (int x = -1; x <= 1; x++){
+                            if (y == 0 && x == 0){
+                                continue;
+                            }
+                            int curY = i + y;
+                            int curX = j + x;
+                            if (curY >= 0 && curY < 12 && curX >= 0 && curX < 8 && !buttons[curY][curX].isBomb()){
+                                buttons[curY][curX].setProperty(buttons[curY][curX].getProperty()+1);
                             }
                         }
                     }
                 }
             }
-            opener(y_coord, x_coord);
+        }
+        openCells(y_coord, x_coord);
+    }
+
+    public void updateData(String buttonName){
+
+        int y_coord = Integer.parseInt(buttonName.substring(0, 2));
+        int x_coord = Integer.parseInt(buttonName.substring(2));
+        if (!getStartedGame()){
+            startGame(y_coord, x_coord);
         }
         else{
             //mode 1 - открывать, mode 0 - флажок
@@ -185,7 +160,7 @@ public class Field {
                         }
                     }
                     if (counterFlags == buttons[y_coord][x_coord].getProperty()){
-                        opener(y_coord, x_coord);
+                        openCells(y_coord, x_coord);
                     }
                 }
                 else{
@@ -195,7 +170,7 @@ public class Field {
                         return;
                     }
                     if (buttons[y_coord][x_coord].getProperty() == 0){
-                        opener(y_coord, x_coord);
+                        openCells(y_coord, x_coord);
                     }
                     else{
                         buttons[y_coord][x_coord].setOpen(true);
@@ -205,9 +180,9 @@ public class Field {
             else{
                 //флажок можно установить/снять только на закрытую
                 if (!buttons[y_coord][x_coord].getOpen()){
-                    System.out.println(buttons[y_coord][x_coord].getFlag());
+
                     buttons[y_coord][x_coord].setFlag(!buttons[y_coord][x_coord].getFlag());
-                    System.out.println(buttons[y_coord][x_coord].getFlag());
+
                 }
             }
         }
@@ -222,7 +197,6 @@ public class Field {
             List<InlineKeyboardButton> row = new ArrayList<>();
             for (int j = 0; j < colsCount; j++) {
                 String buttonText = buttons[i][j].getEmoji();
-                //String buttonText = String.valueOf(buttons[i][j].getProperty());
                 String callbackData = String.format("-b%02d%02d", i, j);
                 // Создаем кнопку
                 InlineKeyboardButton button = InlineKeyboardButton.builder()
@@ -250,7 +224,7 @@ public class Field {
         return inlineKeyboardMarkup;
     }
 
-    public void bomber(){
+    public void showBombs(){
         for (int i = 0; i < 12; i++){
             for (int j = 0; j < 8; j++) {
                 if (buttons[i][j].isBomb()){
@@ -263,7 +237,6 @@ public class Field {
 
 
     //Получает данные о кнопке по координатам
-    //Зачем оно нам, если внутри Field мы и так имеем доступ к buttons?
     public Button touchButtonByName(String buttonName){
         int y_coord = Integer.parseInt(buttonName.substring(0, 2));
         int x_coord = Integer.parseInt(buttonName.substring(2));
