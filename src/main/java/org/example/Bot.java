@@ -65,6 +65,25 @@ public class Bot extends TelegramLongPollingBot {
         return inlineKeyboardMarkup;
     }
 
+    public InlineKeyboardMarkup getKeyboardForTraining(String chatId, int messageId) {
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        InlineKeyboardButton inlineKeyboardButton1 = new InlineKeyboardButton();
+        InlineKeyboardButton inlineKeyboardButton2 = new InlineKeyboardButton();
+        inlineKeyboardButton1.setText(Easy);
+        inlineKeyboardButton1.setCallbackData("-eЛегкий");
+        inlineKeyboardButton2.setText(Standart);
+        inlineKeyboardButton2.setCallbackData("-sСтандартный");
+        List<InlineKeyboardButton> keyboardButtonsRow1 = new ArrayList<>();
+        List<InlineKeyboardButton> keyboardButtonsRow2 = new ArrayList<>();
+        keyboardButtonsRow1.add(inlineKeyboardButton1);
+        keyboardButtonsRow2.add(inlineKeyboardButton2);
+        List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
+        rowList.add(keyboardButtonsRow1);
+        rowList.add(keyboardButtonsRow2);
+        inlineKeyboardMarkup.setKeyboard(rowList);
+        return inlineKeyboardMarkup;
+    }
+
     private void handleCallbackQuery(Update update) {
         CallbackQuery currentCallback = update.getCallbackQuery();
         String callData = currentCallback.getData();
@@ -75,17 +94,18 @@ public class Bot extends TelegramLongPollingBot {
         SendMessage message = new SendMessage();
         switch (callDataCase) {
             case "-h":
-                message.setText("Сработал Обучение");
-                message.setChatId(chatId);
-                try {
-                    execute(message);
-                } catch (TelegramApiException e) {
-                    e.printStackTrace();
-                }
+                deleteLastMessage(chatId, messageId);
+                sendMessage(message, Rules, chatId, getKeyboardForTraining(chatId, messageId));
                 break;
             case "-s":
                 //по идее нам реализацию каждой из функций для обработки режимов нужно сделать в отдельном файле/классе с логикой бота
                 users.get(chatId).setMyField(12, 8);
+                playStandart(chatId, messageId);
+
+                break;
+            case "-e":
+                //по идее нам реализацию каждой из функций для обработки режимов нужно сделать в отдельном файле/классе с логикой бота
+                users.get(chatId).setMyField(5, 5);
                 playStandart(chatId, messageId);
 
                 break;
@@ -102,8 +122,6 @@ public class Bot extends TelegramLongPollingBot {
                 //пришла кнопка игрового поля
                 else {
                     users.get(chatId).getMyField().updateData(comand);
-                    System.out.println(users.get(chatId).getMyField().getCountClosedCells());
-                    System.out.println(users.get(chatId).getMyField().getCountBombs());
                     if (users.get(chatId).getMyField().getCountClosedCells() == users.get(chatId).getMyField().getCountBombs()){
                         deleteLastMessage(chatId, messageId);
                         goodEndGame(users.get(chatId).getMyField(), chatId);
